@@ -9,13 +9,14 @@
 using namespace std;
 
 class Elevator {
-private:
+public:
+    int id;
     int currentFloor;
     vector<int> requests;
     bool goingUp;
+    int timeElapsed;
 
-public:
-    Elevator() : currentFloor(0), goingUp(true) {}
+    Elevator(int id) : id(id), currentFloor(0), goingUp(true), timeElapsed(0) {}
 
     void addRequest(int floor) {
         if (find(requests.begin(), requests.end(), floor) == requests.end()) {
@@ -25,6 +26,7 @@ public:
     }
 
     void sortRequests() {
+        // Sorting strategy based on current direction
         if (goingUp) {
             sort(requests.begin(), requests.end());
         }
@@ -33,71 +35,97 @@ public:
         }
     }
 
-    void moveElevator() {
-        if (requests.empty()) return;
+    bool shouldAccept(int floor) {
+        // Decide if this elevator should take the request based on direction and proximity
+        if (requests.empty()) {
+            return true; // Always accept if idle
+        }
+        // Accept if the request is in the direction of travel and on the path
+        if (goingUp && floor >= currentFloor) {
+            return true;
+        }
+        else if (!goingUp && floor <= currentFloor) {
+            return true;
+        }
+        return false; // Otherwise, do not accept
+    }
 
-        bool requestServed = false;
-        if (goingUp) {
-            for (auto it = requests.begin(); it != requests.end(); ) {
-                if (*it >= currentFloor) {
-                    cout << "Moving to floor " << *it << "." << endl << endl;  // Print the moving notification
-                    currentFloor = *it;
-                    it = requests.erase(it); // Erase the request after serving it
-                    requestServed = true;
-                    break;
-                }
-                else {
-                    ++it;
-                }
-            }
+    bool move() {
+        if (requests.empty()) return false;
+        int nextFloor = requests.front();
+
+        // Determine direction before removing the request
+        goingUp = nextFloor > currentFloor;
+
+        int travelTime = abs(nextFloor - currentFloor) * 2;  // 2 seconds per floor
+        int waitTime = nextFloor == currentFloor ? 10 : travelTime + 10;  // Adjust time if already on that floor
+
+        if (nextFloor == currentFloor) {
+            cout << "Elevator " << id << " already on requested floor " << currentFloor << ". Holding the elevator for " << waitTime << " additional seconds." << endl << endl;
         }
         else {
-            for (auto it = requests.rbegin(); it != requests.rend(); ++it) {
-                if (*it <= currentFloor) {
-                    cout << "Moving to floor " << *it << "." << endl << endl;  // Print the moving notification
-                    currentFloor = *it;
-                    requests.erase((it + 1).base()); // Proper erase from reverse iterator
-                    requestServed = true;
-                    break;
-                }
-            }
+            cout << "Elevator " << id << " is moving from floor " << currentFloor << " to floor " << nextFloor << " (" << (goingUp ? "Up" : "Down") << "). ";
+            cout << waitTime << " seconds to reach floor " << nextFloor << endl << endl;
         }
 
-        if (!requestServed) {
-            switchDirection();
-        }
+        timeElapsed += waitTime;
+        currentFloor = nextFloor;
+        requests.erase(requests.begin());
+        return true;
     }
 
-
-    void switchDirection() {
-        if (requests.empty()) return;
-
-        cout << "No requests pending to go " << (goingUp ? "up" : "down") << ", switching direction to " << (!goingUp ? "up" : "down") << "." << endl << endl;
-
-        goingUp = !goingUp;  // Toggle the direction
-        sortRequests();  // Re-sort the requests based on new direction
-    }
-
-    void displayStatus() {
-        cout << "Current floor: " << currentFloor << endl << endl;
-        cout << "Direction: " << (goingUp ? "Up" : "Down") << endl << endl;
-        cout << "Pending requests: ";
-        for (int floor : requests) {
-            cout << floor << " ";
-        }
-        cout << endl << endl;
+    bool isIdle() {
+        return requests.empty();
     }
 };
 
+class ElevatorController {
+private:
+    Elevator elevator1, elevator2;
 
-void simulateElevatorOperation(int numRequests, int numFloors) {
-    Elevator elevator;
-    srand(time(NULL)); // Seed for random number generation
+    void assignRequest(int floor) {
+        bool e1ShouldAccept = elevator1.shouldAccept(floor);
+        bool e2ShouldAccept = elevator2.shouldAccept(floor);
 
-    for (int i = 0; i < numRequests; i++) {
+        if (e1ShouldAccept && (!e2ShouldAccept || abs(elevator1.currentFloor - floor) <= abs(elevator2.currentFloor - floor))) {
+            elevator1.addRequest(floor);
+        }
+        else if (e2ShouldAccept) {
+            elevator2.addRequest(floor);
+        }
+        else {
+            if (abs(elevator1.currentFloor - floor) < abs(elevator2.currentFloor - floor)) {
+                elevator1.addRequest(floor);
+            }
+            else {
+                elevator2.addRequest(floor);
+            }
+        }
+    }
+
+public:
+    ElevatorController() : elevator1(1), elevator2(2) {}
+
+    void addRequest(int floor) {
+        cout << "Request received for floor " << floor << "." << endl;
+        assignRequest(floor);
+        operateElevators();
+    }
+
+    void operateElevators() {
+        bool moved = false;
+        do {
+            moved = elevator1.move() || elevator2.move();
+        } while (moved);
+    }
+};
+
+void simulateElevatorOperation(int numFloors) {
+    ElevatorController controller;
+    srand(time(NULL)); // Seed the random generator
+
+    for (int i = 0; i < 10; i++) {
         int randomFloor = rand() % numFloors;
-        elevator.addRequest(randomFloor);
-        elevator.moveElevator();
-        elevator.displayStatus();
+        controller.addRequest(randomFloor);
     }
 }

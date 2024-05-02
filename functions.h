@@ -26,7 +26,6 @@ public:
     }
 
     void sortRequests() {
-        // Sorting strategy based on current direction
         if (goingUp) {
             sort(requests.begin(), requests.end());
         }
@@ -36,29 +35,29 @@ public:
     }
 
     bool shouldAccept(int floor) {
-        // Decide if this elevator should take the request based on direction and proximity
+
         if (requests.empty()) {
-            return true; // Always accept if idle
+            return true; 
         }
-        // Accept if the request is in the direction of travel and on the path
+ 
         if (goingUp && floor >= currentFloor) {
             return true;
         }
         else if (!goingUp && floor <= currentFloor) {
             return true;
         }
-        return false; // Otherwise, do not accept
+        return false; 
     }
 
     bool move() {
         if (requests.empty()) return false;
         int nextFloor = requests.front();
 
-        // Determine direction before removing the request
+        
         goingUp = nextFloor > currentFloor;
 
-        int travelTime = abs(nextFloor - currentFloor) * 2;  // 2 seconds per floor
-        int waitTime = nextFloor == currentFloor ? 10 : travelTime + 10;  // Adjust time if already on that floor
+        int travelTime = abs(nextFloor - currentFloor) * 2;  
+        int waitTime = nextFloor == currentFloor ? 10 : travelTime + 10;  
 
         if (nextFloor == currentFloor) {
             cout << "Elevator " << id << " already on requested floor " << currentFloor << ". Holding the elevator for " << waitTime << " additional seconds." << endl << endl;
@@ -122,7 +121,7 @@ public:
 
 void simulateElevatorOperation(int numFloors) {
     ElevatorController controller;
-    srand(time(NULL)); // Seed the random generator
+    srand(time(NULL)); 
 
     for (int i = 0; i < 10; i++) {
         int randomFloor = rand() % numFloors;
